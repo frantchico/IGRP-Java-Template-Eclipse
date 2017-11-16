@@ -1,17 +1,55 @@
 $(function(){
+	
 	'use strict';
 
 	var GEN    	   = VARS.getGen(),
 
-		genOptions = GEN.params && GEN.params.server ? GEN.params.server : {},
+		genOptions 	  = GEN.params && GEN.params.server ? GEN.params.server : {},
 
-		server 	   = GEN.server = {};
+		server 	   	  = GEN.server = {},
+
+		clicked 	  = {},
+
+		reservedAreas = {
+
+			java : {
+
+				controller : {
+
+					'PACKAGES_IMPORT' : {
+
+						code : ''
+
+					},
+
+					'INDEX' : {
+
+						code : ''
+
+					},
+
+					'CUSTOM_ACTIONS' : {
+
+						code : ''
+
+					}
+
+				}
+
+			}
+
+		},
+
+		reservedExceptions = {
+
+		};
 
 	server.activeMenu = {};
 
 	server.preserved  = {};
 
 	server.editors    = {};
+
 
 	server.set = function(p){
 
@@ -29,13 +67,17 @@ $(function(){
 
 	server.transform = function(o){
 
-		var xmlStr    = GEN.getXML(),
+		var xmlStr     = GEN.getXML(),
 
-			xml  	  = $.parseXML(xmlStr),
+			xml  	   = $.parseXML(xmlStr),
 
-			isIE      = window.ActiveXObject || window.navigator.userAgent.match(/rv:11.0/i) ? true : false,
+			isIE       = window.ActiveXObject || window.navigator.userAgent.match(/rv:11.0/i) ? true : false,
 
-			xslParams = isIE ? { jsEnter:enterParam } : false;
+			enterParam = '$$enter$$',
+
+			xslParams  = isIE ? { jsEnter:enterParam } : false,
+
+			m  	       = clicked;
 
 		GEN.waiting();
 		
@@ -46,6 +88,8 @@ $(function(){
 			xslBasePath : o.basePath,
 			
 			complete    : function(d,e){
+
+				console.log('transformed')
 
 				var content  = d.html(),
  
@@ -59,6 +103,7 @@ $(function(){
 
 						GEN.done();
 
+
 					};
 
 				content = content.replaceAll('&lt;','<');
@@ -66,8 +111,35 @@ $(function(){
 				content = content.replaceAll('&gt;','>');
 
 				content = content.replaceAll('&amp;','&');
+
+				content = content.replaceAll(enterParam,'\n');
+
+				LoadExceptions(content,function(result){
+
+					result.forEach(function(o){
+
+						var field = GEN.getFieldByTag(o.name),
+
+							object = false;
+
+						try{
+
+							object = field ? field.server.preserved[m.mode][m.part] : reservedAreas[m.mode][m.part][o.name.toUpperCase()];
+
+						}catch(err){
+							null;
+						}
+
+						var text = object && object.exceptions ? 'throws '+object.exceptions : o.text;
+
+						content = content.replaceAll(o.expression,$.trim(text));
+
+					});
+
+					LoadPreservedCodes( content, onFinish);
+				});
+
 				
-				LoadPreservedCodes( content, onFinish);
 				
 			},
 
@@ -100,17 +172,13 @@ $(function(){
 
 	var LoadPreservedCodes = function(content, callback){
 
-		//var beginExp = '/*----#START-PRESERVED-AREA----*/';
-
-		//var endExp   = '/*----#END-PRESERVED-AREA----*/';
-
 		var beginExp = '/*----#START-PRESERVED-AREA(';
 
 		var endExp   = '/*----#END-PRESERVED-AREA----*/';
 
-		var begin = getIndicesOf(beginExp, content);
+		var begin 	 = getIndicesOf(beginExp, content);
 
-		var end  = getIndicesOf(endExp, content);
+		var end  	 = getIndicesOf(endExp, content);
 
 		if(begin[0] && end[0]){
 
@@ -130,66 +198,68 @@ $(function(){
 
 					callback:function(r){
 
+						console.log(r);
+						
+						var m = clicked;
+
 						r.forEach(function(o){
-							
-							if(server.preserved && server.preserved.java && server.preserved.java.controller && server.preserved.java.controller[o.areaName]){
+
+							var text = o.text;
+
+							if( reservedAreas[m.mode] && reservedAreas[m.mode][m.part] && reservedAreas[m.mode][m.part][o.areaName] ){
 								
-								var val = server.preserved.java.controller[o.areaName];
+								var reserved = reservedAreas[m.mode][m.part][o.areaName].code;
 
-								content = content.replaceAll(o.originalContent,val);
+								if(reserved != '')
+									
+									content = content.replaceAll(o.originalContent,reserved);
 
-							}else{	
-							
-								var text = $.trim(o.text);
+								else{
 
-								if(text != '')
-
-									content = content.replaceAll(o.originalContent,'\n\n'+$.trim(o.text));
-
-								content = content.replaceAll(o.urlExpression,'');
-
-								setTimeout(function(){
-
-									var m = server.activeMenu;
-
-									if(!server.preserved[m.mode])
-
-										server.preserved[m.mode] = {};
-
-									if(!server.preserved[m.mode][m.part])
+									if(text!=''){
 										
-										server.preserved[m.mode][m.part] = {};
+										content = content.replaceAll(o.originalContent,text);
 
-									server.preserved[m.mode][m.part][o.areaName] = o.text;
+									reservedAreas[m.mode][m.part][o.areaName].code = text;
+									
+									}
+										
+								}
 
-								},50)
+							}else{
+								
+								var tag   = o.areaName.toLowerCase(),
+
+									field = GEN.getFieldByTag(tag);
+
+								if(field){
+									
+									if(field.server.preserved[m.mode] && field.server.preserved[m.mode][m.part] && field.server.preserved[m.mode][m.part].code != '' ){
+										
+										var val = field.server.preserved[m.mode][m.part].code;
+
+										content = content.replaceAll(o.originalContent,val);
+									
+									}else{
+										
+										if(text != '')
+
+											content = content.replaceAll(o.originalContent,text);
+										
+										field.server.preserved[m.mode] =field.server.preserved[m.mode] || {};
+
+										field.server.preserved[m.mode][m.part] = field.server.preserved[m.mode][m.part] || {
+
+											code : text
+
+										}
+										
+									}
+								}
+
 							}
-							
-							//if(server.preserved)
-							
-							/*var text = $.trim(o.text);
-
-							if(text != '')
-
-								content = content.replaceAll(o.originalContent,'\n\n'+$.trim(o.text));
 
 							content = content.replaceAll(o.urlExpression,'');
-
-							setTimeout(function(){
-
-								var m = server.activeMenu;
-
-								if(!server.preserved[m.mode])
-
-									server.preserved[m.mode] = {};
-
-								if(!server.preserved[m.mode][m.part])
-									
-									server.preserved[m.mode][m.part] = {};
-
-								server.preserved[m.mode][m.part][o.areaName] = o.text;
-
-							},50)*/
 
 						});
 
@@ -209,6 +279,86 @@ $(function(){
 
 	};
 
+	var LoadExceptions = function(content,callback){
+		
+		var expStart = '/*----#EXECEP(',
+
+			expEnd   = ')EXECEP#----*/',
+
+			sidx 	 = getIndicesOf(expStart,content),
+
+			eidx  	 = getIndicesOf(expEnd,content);
+
+		if(sidx.length == eidx.length){
+
+			preserveExceptions(content,{
+
+				starts : {
+
+					expression : expStart,
+
+					group      : sidx
+
+				},
+
+				ends   : {
+
+					expression : expEnd,
+
+					group 	   : eidx 
+
+				},
+
+				callback:callback
+
+			});
+
+		}
+
+	};
+
+	var getPreservedLines = function(change){
+
+		var start  = '/*----#START-PRESERVED-AREA(',
+
+			end    = '/*----#END-PRESERVED-AREA----*/',
+
+			res    = [],
+
+			arrSt  = [],
+
+			arrEd  = [],
+
+			active = clicked,
+
+			editor = server.editors[active.mode][active.part.toUpperCase()];
+
+		if(editor.lineCount() > 1){
+
+			editor.eachLine(function(e,i){
+
+				if(e.text.indexOf(start) >= 0)
+
+					arrSt.push(e.lineNo());
+				
+
+				if(e.text.indexOf(end) >= 0)
+
+					arrEd.push(e.lineNo());
+				
+
+			});
+
+
+			return {
+				start : arrSt,
+				end   : arrEd
+			}
+
+		}
+
+	};	
+
 	var DeactivateMenus = function(){
 
 		$('.server-transform').removeClass('active');
@@ -220,6 +370,11 @@ $(function(){
 		var options = GetMenuOptions( menu );
 
 		var editor  = server.editors[options.mode][options.part.toUpperCase()];
+
+		clicked = {
+			mode : options.mode,
+			part : options.part
+		};
 		
 		options.callback = function(content){
 
@@ -310,41 +465,176 @@ $(function(){
 	
 	};
 
+	var storeExceptions = function(content,o){
+
+		var commentStart  = '/*----',
+
+			startExp 	  = commentStart+'#START-PRESERVED-AREA(',
+
+			declaration   = 'public Response action'+capitalizeFirstLetter(o.name)+'() throws ',
+
+			split 	 	  = content.split(declaration),
+
+			exceptionsRow = split[1] || false;
+
+		if(exceptionsRow){
+			
+			var exContent = exceptionsRow.split(startExp)[0].replace('{','');
+
+			if(o.field){
+
+				if(o.field.server.preserved[o.mode][o.part])
+
+					o.field.server.preserved[o.mode][o.part].exceptions = exContent;
+				
+			}else{
+
+				if(reservedAreas[o.mode] && reservedAreas[o.mode][o.part] && reservedAreas[o.mode][o.part][o.name.toUpperCase()])
+
+					reservedAreas[o.mode][o.part][o.name.toUpperCase()].exceptions = exContent;
+
+			}
+
+		}
+	}
+
 	var SetEditorEvents = function(editor,mode){
 		
-		editor.on('blur',function(){
+		var writing = false;
 
-			var m = server.activeMenu,
+		editor.on('blur',function(cm,change){
 
-        		p = server.preserved;
+			var m 		 	 = server.activeMenu,
 
-        	if(p[m.mode] && p[m.mode][m.part]){
+				content      = editor.getValue(),
 
-        		var keys 	 = Object.keys(p[m.mode][m.part]),
+				commentStart = '/*----',
 
-        			content  = editor.getValue(),
+				commentEnd   = '----*/',
 
-        			endIDX 	 = getIndicesOf('/*----#END-PRESERVED-AREA----*/',content);
+				startExp 	 = commentStart+'#START-PRESERVED-AREA(',
 
-        		keys.forEach(function(k,i){
+				endExp   	 = commentStart+'#END-PRESERVED-AREA'+commentEnd,
 
-        			var tag = k.toLowerCase();
+				startIDX 	 = getIndicesOf(startExp,content),
 
-        			var startExp = '/*----#START-PRESERVED-AREA('+k+')----*/';
+				endIDX 	 	 = getIndicesOf(endExp,content),
 
-        			var startIDX = getIndicesOf(startExp,content);
+				reserved 	 = reservedAreas[m.mode] && reservedAreas[m.mode][m.part] ? reservedAreas[m.mode][m.part] : {};
 
-    				startIDX.forEach(function(si,x){
+			if(startIDX.length == endIDX.length){
 
-    					var ei = endIDX[i];
+				startIDX.forEach(function(sidx,i){
 
-    					p[m.mode][m.part][k] = content.substring(si+startExp.length,ei);
+					var eidx 	     = endIDX[i],
 
-    				});
+						partContent  = content.substring(sidx,eidx+endExp.length),
 
-        		});
+						nameStartIdx = partContent.indexOf(startExp),
 
-        	};
+						nameEndIdx 	 = partContent.indexOf(')'+commentEnd),
+
+						name 		 = partContent.substring(nameStartIdx+startExp.length,nameEndIdx),
+
+						_name 		 = name.toLowerCase(),
+
+						field 		 = GEN.getFieldByTag(_name),
+
+						codeHead 	 =  startExp+name+')'+commentEnd,
+
+						codeContent  = partContent.replaceAll(codeHead,'').replaceAll(endExp,'');
+
+					if(field){
+
+						storeExceptions(content,{
+							field   : field,
+							name    : _name,
+							mode    : m.mode,
+							part 	: m.part
+						});
+
+						if( field.server.preserved[m.mode] && field.server.preserved[m.mode][m.part] )
+
+    						field.server.preserved[m.mode][m.part].code = codeContent;
+
+   
+					}else{
+
+						storeExceptions(content,{
+							name    : _name,
+							mode    : m.mode,
+							part 	: m.part
+						});
+						
+						if(reserved[name])
+
+							reserved[name].code = codeContent;
+
+					}	
+
+				});
+
+			};
+
+		});
+
+		editor.on('beforeChange',function(cm,change){
+			
+			if(writing){
+
+				var start = '/*----#START-PRESERVED-AREA(',
+
+					end   = '/*----#END-PRESERVED-AREA----*/',
+
+					lines = getPreservedLines(),
+
+					isPreservedInit = editor.getLine(change.from.line).indexOf(start) != -1;
+
+
+				if(!isPreservedInit){
+
+					if(lines){
+						
+						var isReservedArea = false;
+
+						for( var x = 0; x < lines.start.length; x++ ){
+							
+							for(var i = lines.start[x]; i <= lines.end[x]; i++ ){
+								//console.log(i)
+								if( change.from.line == i-1 )
+
+									isReservedArea = true;
+							}
+
+						}
+
+						if( !isReservedArea  ){
+							
+							change.cancel();
+
+						}
+
+					}
+
+				}else{
+
+					change.cancel();
+
+				}	
+
+			}
+
+		});
+
+		editor.on('keydown',function(cm,e){
+			
+			writing = true;
+
+		});
+
+		editor.on('keyup',function(cm,e){
+			
+			writing = false;
 
 		});
 
