@@ -24,7 +24,6 @@
 	</classpathentry>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/apache-commons-lang.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/java-json.jar"/>
-	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/javax.servlet.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/jd-cli.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/tools.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/IGRP.jar"/>
@@ -42,7 +41,6 @@
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/hibernate-jpa-2.1-api-1.0.0.Final.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/jandex-2.0.3.Final.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/javassist-3.20.0-GA.jar"/>
-	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/javax.servlet-3.0.0.v201112011016-sources.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/jaxrpc.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/jboss-logging-3.3.0.Final.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/jboss-transaction-api_1.2_spec-1.0.1.Final.jar"/>
@@ -51,7 +49,6 @@
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/jsr311-api-1.1.1.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/libintl-0.18.3.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/mysql-connector-java-5.1.36.jar"/>
-	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/PesquisaNIF.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/postgresql-42.1.1.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/saaj.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/serializer-2.7.2.jar"/>
