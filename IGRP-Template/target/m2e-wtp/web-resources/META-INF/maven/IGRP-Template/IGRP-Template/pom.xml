@@ -100,6 +100,19 @@
           <warSourceDirectory>WebContent</warSourceDirectory>
         </configuration>
       </plugin>
+      <plugin>
+		  <groupId>org.apache.openejb.maven</groupId>
+		  <artifactId>tomee-maven-plugin</artifactId>
+		  <version>1.7.1</version>
+		  <configuration>
+		    <synchronization>
+		      <extensions>
+		        <extension>.class</extension> <!-- if you want to update each time you build with mvn compile -->
+		      </extensions>
+		    </synchronization>
+		    <reloadOnUpdate>true</reloadOnUpdate>
+		  </configuration>
+		</plugin>
     </plugins>
   </build>
 </project>
